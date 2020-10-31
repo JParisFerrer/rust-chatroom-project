@@ -1,0 +1,40 @@
+syntax = "proto3";
+package chatroom;
+
+message JoinRequest {
+    string username = 1;
+}
+message JoinResponse {
+    repeated string initial_chats = 1;
+}
+
+message SendChat {
+    string msg = 1;
+}
+message RecvChat {
+    string msg = 1;
+    string username = 2;
+}
+
+message UserJoin{
+    string username = 1;
+}
+message UserLeft{
+    string username = 1;
+}
+
+message ClientMessageWrapper {
+    oneof inner_message {
+        JoinRequest join_msg = 1;
+        SendChat chat_msg = 2;
+    };
+}
+
+message ServerMessageWrapper {
+    oneof inner_message {
+        JoinResponse join_resp_msg = 1;
+        RecvChat chat_msg = 2;
+        UserJoin user_join_msg = 3;
+        UserLeft user_left_msg = 4;
+    };
+}

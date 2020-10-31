@@ -1,0 +1,9 @@
+[workspace]
+
+members = [
+    "client",
+    "server",
+    "shared",
+    #"proto-gen",
+    "proto_chatroom",
+]
