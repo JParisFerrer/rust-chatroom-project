@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 pb-jelly = "0.0.4"
+proto_chatroom = {path = "../proto_chatroom" }
+byteorder = "1.3.4"
