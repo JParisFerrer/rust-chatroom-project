@@ -2,10 +2,14 @@
 name = "server"
 version = "0.1.0"
 authors = ["Jordi Paris Ferrer <jparisferrer@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 proto_chatroom = {path = "../proto_chatroom" }
 shared = {path = "../shared" }
+tokio = {version = "1", features = ["full"]}
+tokio-stream = {version = "0.1"}
+futures = {version = "0.3"}
+anyhow = {version = "1"}

@@ -1,11 +1,27 @@
 syntax = "proto3";
 package chatroom;
 
+import "rust/extensions.proto";
+
 message JoinRequest {
     string username = 1;
 }
 message JoinResponse {
-    repeated string initial_chats = 1;
+    message Success {
+        // This should really include leaves & joins
+        repeated RecvChat initial_chats = 1;
+    }
+
+    message Failure {
+        string error_message = 1;
+    }   
+
+    oneof response {
+        option (rust.nullable) = false;
+        Success success = 1;
+        Failure failure = 2;
+    }
+
 }
 
 message SendChat {
@@ -25,6 +41,8 @@ message UserLeft{
 
 message ClientMessageWrapper {
     oneof inner_message {
+        option (rust.nullable) = false;
+
         JoinRequest join_msg = 1;
         SendChat chat_msg = 2;
     };
@@ -32,9 +50,11 @@ message ClientMessageWrapper {
 
 message ServerMessageWrapper {
     oneof inner_message {
+        option (rust.nullable) = false;
+
         JoinResponse join_resp_msg = 1;
         RecvChat chat_msg = 2;
         UserJoin user_join_msg = 3;
         UserLeft user_left_msg = 4;
-    };
+    } ;
 }

@@ -2,9 +2,9 @@
 name = "proto-gen"
 version = "0.1.0"
 authors = ["Jordi Paris Ferrer <jparisferrer@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pb-jelly-gen = "0.0.4"
+pb-jelly-gen = "0.0.11"

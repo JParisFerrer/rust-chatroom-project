@@ -7,3 +7,7 @@ members = [
     #"proto-gen",
     "proto_chatroom",
 ]
+
+exclude = [
+    "proto-gen"
+]
