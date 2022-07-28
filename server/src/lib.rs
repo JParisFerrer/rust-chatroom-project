@@ -18,6 +18,9 @@ pub struct ServerRunner {
 
     connected_users: HashMap<String, ()>,
     writer_broadcast_sender: broadcast::Sender<WriterOp>,
+
+    // This should be a full log of all events, real type, etc
+    message_history: Vec<(String, proto::SendChat)>,
 }
 
 // Specific pre-parsed commands that the stdin reader will send to the main thread to run
@@ -199,6 +202,7 @@ impl ServerRunner {
                             let network_proto = proto::ServerMessageWrapper{inner_message: proto::ServerMessageWrapper_InnerMessage::ChatMsg(proto::RecvChat{username: chat_sender_username, msg:contents.msg})};
                             if let Err(e) = write_message(&mut tcp_sender, &network_proto).await {
                                 eprintln!("{:?}: write loop for User {:?}: error sending message {:?}", remote_addr, username, e);
+                                break;
                             }
                         }
                         Ok(WriterOp::UserLeft{username: msg_username}) => {
@@ -268,14 +272,28 @@ impl ServerRunner {
             )
             .await
             {
-                eprintln!("Failed to give {} connection failure reason: {:?}", username, e);
+                eprintln!(
+                    "Failed to give {} connection failure reason: {:?}",
+                    username, e
+                );
             }
 
             // send half gets dropped automatically
             return;
         }
 
-        // TODO: Send real initial chats
+        let initial_chats: Vec<proto::RecvChat> = std::iter::once(proto::RecvChat {
+            username: "FakeUser".to_owned(),
+            msg: "some chat".to_owned(),
+        })
+        .chain(self.message_history.iter().map(|(username, send_chat)| {
+            proto::RecvChat {
+                username: username.clone(),
+                msg: send_chat.msg.clone(),
+            }
+        }))
+        .collect();
+
         if let Err(e) = write_message(
             &mut sender,
             &proto::ServerMessageWrapper {
@@ -283,10 +301,7 @@ impl ServerRunner {
                     proto::JoinResponse {
                         response: proto::JoinResponse_Response::Success(
                             proto::JoinResponse_Success {
-                                initial_chats: vec![proto::RecvChat {
-                                    username: "FakeUser".to_owned(),
-                                    msg: "some chat".to_owned(),
-                                }],
+                                initial_chats: initial_chats,
                             },
                         ),
                     },
@@ -335,12 +350,24 @@ impl ServerRunner {
         self.connected_users.remove(&username);
     }
 
+    async fn handle_new_chat(&mut self, username: String, contents: proto::SendChat) {
+        // Store the message
+        self.message_history
+            .push((username.clone(), contents.clone()));
+
+        // broadcast it out to send to clients
+        let _ = self
+            .writer_broadcast_sender
+            .send(WriterOp::NewChat { username, contents });
+    }
+
     // Public API
     pub fn new(config: ServerRunnerConfig) -> ServerRunner {
         ServerRunner {
             config: config,
             connected_users: HashMap::new(),
             writer_broadcast_sender: broadcast::channel(1024).0,
+            message_history: vec![],
         }
     }
 
@@ -380,7 +407,9 @@ impl ServerRunner {
                         MainOp::UserLeft {username} => {
                             self.handle_user_left(username).await;
                         }
-                        // TODO: Handle NewChat
+                        MainOp::NewChat{username, contents} => {
+                            self.handle_new_chat(username, contents).await;
+                        }
                         o => panic!("unhandled op! {:?}", o),
                     };
                 }

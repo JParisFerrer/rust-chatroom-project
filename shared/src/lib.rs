@@ -36,6 +36,10 @@ impl Shutdown {
         let _ = self.shutdown_notify.recv().await;
         self.is_shutdown = true;
     }
+
+    pub fn is_shutdown(&self) -> bool {
+        self.is_shutdown
+    }
 }
 
 impl Clone for Shutdown {
