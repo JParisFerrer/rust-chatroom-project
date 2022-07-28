@@ -58,6 +58,9 @@ enum WriterOp {
     UserLeft {
         username: String,
     },
+    UserJoined {
+        username: String,
+    },
 }
 
 impl ServerRunner {
@@ -215,6 +218,16 @@ impl ServerRunner {
                                 eprintln!("{:?}: write loop for User {:?}: error sending message {:?}", remote_addr, username, e);
                             }
                         }
+                        Ok(WriterOp::UserJoined{username: msg_username}) => {
+                            if msg_username == username {
+                                continue;
+                            }
+
+                            let network_proto = proto::ServerMessageWrapper{inner_message: proto::ServerMessageWrapper_InnerMessage::UserJoinMsg(proto::UserJoin{username: msg_username})};
+                            if let Err(e) = write_message(&mut tcp_sender, &network_proto).await {
+                                eprintln!("{:?}: write loop for User {:?}: error sending message {:?}", remote_addr, username, e);
+                            }
+                        }
                         Err(broadcast::error::RecvError::Lagged(by)) => {
                             // This would mean dropped chats; for now, simply panic the entire
                             // server as there is no way atm of having this send that the user has
@@ -327,6 +340,8 @@ impl ServerRunner {
             );
             return;
         }
+
+        let _ = self.writer_broadcast_sender.send(WriterOp::UserJoined{username: username.clone()});
 
         tokio::spawn(ServerRunner::user_write_loop(
             sender,
